@@ -105,6 +105,20 @@
         }
 
         /* 코어, 기물 스타일 */
+        .core-p1, .core-p2 {
+            position: relative;
+        }
+        
+        /* === 수정된 부분: 코어 시각화 === */
+        .core-p1::after, .core-p2::after {
+            content: '💎'; /* 코어를 나타내는 이모지 */
+            position: absolute;
+            font-size: 30px;
+            opacity: 0.3;
+            z-index: 0;
+            pointer-events: none; /* 클릭 방지 */
+        }
+        
         .core-p1 { background-color: rgba(70, 130, 180, 0.7); }
         .core-p2 { background-color: rgba(220, 20, 60, 0.7); }
         
@@ -198,6 +212,10 @@
         
         function createBoard() {
             boardElement.innerHTML = '';
+            // 기물 텍스트가 중앙에 오도록 z-index 추가
+            boardElement.style.position = 'relative';
+            boardElement.style.zIndex = '1';
+
             const cols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
 
             for (let row = 0; row <= BOARD_SIZE; row++) {
@@ -302,51 +320,57 @@
 
             const { col, row } = parseId(pieceId);
             const moves = [];
+            const dir = piece.player === 'p1' ? 1 : -1; // p1은 아래로, p2는 위로 이동
             
             switch (piece.type) {
                 case 'Striker':
-                    const dir = piece.player === 'p1' ? 1 : -1;
-                    [-1, 0, 1].forEach(dCol => {
-                         [dir].forEach(dRow => {
-                            const nextId = toId(col + dCol, row + dRow);
-                            if (nextId && !gamePieces[nextId]) moves.push(nextId);
-                        });
-                    });
-                     [-1, 0, 1].forEach(dCol => {
-                         [-1, 0, 1].forEach(dRow => {
-                            if (dCol === 0 && dRow === 0) return;
-                            const targetId = toId(col + dCol, row + dRow);
-                            if (targetId && gamePieces[targetId] && gamePieces[targetId].player !== piece.player) {
-                                moves.push(targetId);
-                            }
-                        });
-                    });
-                    break;
-                case 'Cannon':
-                    [[0,1], [0,-1], [1,0], [-1,0]].forEach(([dCol, dRow]) => {
-                        for (let i = 1; i <= 2; i++) {
-                            const nextId = toId(col + dCol * i, row + dRow * i);
-                            if (nextId && !gamePieces[nextId]) moves.push(nextId);
-                            else break;
+                    // === 수정된 부분 1: 스트라이커 로직 ===
+                    // 이동: 상대 코어 방향으로 대각선 1칸 (빈 칸으로만)
+                    [[-1, dir], [1, dir]].forEach(([dCol, dRow]) => {
+                        const nextId = toId(col + dCol, row + dRow);
+                        if (nextId && !gamePieces[nextId]) {
+                            moves.push(nextId);
                         }
                     });
-                     [[0,1], [0,-1], [1,0], [-1,0]].forEach(([dCol, dRow]) => {
-                        for (let i = 1; i <= 4; i++) {
+
+                    // 공격: 직선 1칸 (좌, 우, 전방)
+                    [[0, dir], [-1, 0], [1, 0]].forEach(([dCol, dRow]) => {
+                        const targetId = toId(col + dCol, row + dRow);
+                        if (targetId && gamePieces[targetId] && gamePieces[targetId].player !== piece.player) {
+                            moves.push(targetId);
+                        }
+                    });
+                    break;
+
+                case 'Cannon':
+                    // === 수정된 부분 2: 캐논 로직 ===
+                    // 공격만 가능 (이동 없음), 직선 3칸까지
+                    [[0,1], [0,-1], [1,0], [-1,0]].forEach(([dCol, dRow]) => {
+                        for (let i = 1; i <= 3; i++) { // 사거리 3칸으로 수정
                             const targetId = toId(col + dCol * i, row + dRow * i);
                             if (!targetId) break;
                             if (gamePieces[targetId]) {
-                                if (gamePieces[targetId].player !== piece.player) moves.push(targetId);
-                                break;
+                                if (gamePieces[targetId].player !== piece.player) {
+                                    moves.push(targetId);
+                                }
+                                break; // 다른 기물에 막히면 더 이상 진행 불가
                             }
                         }
                     });
                     break;
+
                 case 'Tracer':
-                    [[2,2], [2,-2], [-2,2], [-2,-2]].forEach(([dCol, dRow]) => {
+                    // === 수정된 부분 3: 트레이서 로직 ===
+                    // 대각선 1칸 또는 2칸 이동
+                    [[1,1], [1,-1], [-1,1], [-1,-1], [2,2], [2,-2], [-2,2], [-2,-2]].forEach(([dCol, dRow]) => {
                         const nextId = toId(col + dCol, row + dRow);
-                        if (nextId && (!gamePieces[nextId] || gamePieces[nextId].player !== piece.player)) moves.push(nextId);
+                        if (nextId && (!gamePieces[nextId] || gamePieces[nextId].player !== piece.player)) {
+                           // 2칸 점프 시, 경로 상에 기물이 있어도 통과 (기존 로직 유지)
+                           moves.push(nextId);
+                        }
                     });
                     break;
+
                 case 'Breaker':
                     for (let dCol = -1; dCol <= 1; dCol++) {
                         for (let dRow = -1; dRow <= 1; dRow++) {
@@ -365,6 +389,12 @@
         function movePiece(fromId, toId) {
             const piece = gamePieces[fromId];
             const target = gamePieces[toId];
+
+            // === 수정된 부분 2: 캐논 공격 처리 ===
+            if (piece.type === 'Cannon') {
+                delete gamePieces[toId]; // 상대 기물만 제거
+                return; // 캐논은 이동하지 않으므로 여기서 함수 종료
+            }
 
             // 액션 처리
             if (target) { // 공격
@@ -387,15 +417,12 @@
                      delete gamePieces[toId];
                 }
             
-            // ================= BUG FIX START =================
-            // 기존의 버그를 유발하던 코드를 삭제하고, 정상 작동하는 새 로직으로 교체합니다.
             } else if (piece.type === 'Breaker') {
                 const opponent = piece.player === 'p1' ? 'p2' : 'p1';
                 const opponentCore = opponent === 'p1' ? P1_CORE_LOCATIONS : P2_CORE_LOCATIONS;
                 const { col: toCol, row: toRow } = parseId(toId);
                 let isAdjacentToCore = false;
 
-                // 이동하려는 위치(toId)가 상대 코어에 인접한지 확인
                 for (const coreCellId of opponentCore) {
                     const { col: coreCol, row: coreRow } = parseId(coreCellId);
                     if (Math.abs(toCol - coreCol) <= 1 && Math.abs(toRow - coreRow) <= 1) {
@@ -404,14 +431,12 @@
                     }
                 }
                 
-                // 만약 인접하다면, 자폭하고 1의 데미지를 줍니다.
                 if (isAdjacentToCore) {
                     coreHealth[opponent]--;
-                    delete gamePieces[fromId]; // Breaker는 이동하지 않고 사라집니다.
-                    return; // 함수를 즉시 종료합니다.
+                    delete gamePieces[fromId];
+                    return; 
                 }
             }
-            // ================= BUG FIX END ===================
             
             // 이동
             gamePieces[toId] = piece;
