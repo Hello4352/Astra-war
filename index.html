@@ -1,678 +1,468 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>아스트라 워즈 — 체계화판</title>
-<style>
-  :root{
-    --cell:56px;--gap:6px;--bg:#f3f6f8;--accent:#0b5cff;
-    --dark:#e6eef9;--light:#ffffff;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);color:#111;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:18px}
-  h1{margin:6px 0 12px}
-  .wrap{display:flex;gap:20px;align-items:flex-start;width:100%;max-width:1200px}
-  .board-wrap{flex:0 0 auto;display:flex;align-items:center;justify-content:center;padding:20px}
-  #board{display:grid;grid-template-columns:repeat(10,var(--cell));grid-auto-rows:var(--cell);gap:var(--gap);background:#222;padding:10px;border-radius:10px}
-  .cell{position:relative;border-radius:8px;display:flex;align-items:flex-start;justify-content:flex-start;padding:6px;cursor:pointer;user-select:none;overflow:hidden}
-  .cell.light{background:var(--light)}
-  .cell.dark{background:var(--dark)}
-  .coord{position:absolute;left:6px;top:6px;font-size:11px;color:#666;pointer-events:none}
-  .piece{width:42px;height:42px;border-radius:50%;box-shadow:inset 0 -4px rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
-  .p0{background:#111;color:#fff}
-  .p1{background:#fff;color:#111;border:1px solid #ddd}
-  .type-label{position:absolute;right:6px;bottom:6px;font-size:10px;color:#333;pointer-events:none}
-  .core1{background:linear-gradient(180deg,#fff2f2,#ffecec);border:2px solid #ff7b7b}
-  .core2{background:linear-gradient(180deg,#f2f8ff,#e6f2ff);border:2px solid #7bb7ff}
-  .core-border{box-shadow:0 0 0 4px rgba(11,92,255,0.06) inset}
-  .highlight-move{outline:3px solid rgba(34,197,94,.92);outline-offset:-3px}
-  .highlight-attack{outline:3px solid rgba(220,38,38,.92);outline-offset:-3px}
-  .stasis-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.12);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px}
-  .sidebar{flex:1 1 360px;max-width:420px}
-  .panel{background:#fff;padding:12px;border-radius:10px;box-shadow:0 6px 20px rgba(10,20,40,0.06)}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .btn{padding:8px 12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
-  .btn[disabled]{opacity:.5;cursor:default}
-  .log{margin-top:10px;height:240px;overflow:auto;padding:8px;border-radius:8px;border:1px solid #eef2ff;background:#fbfdff;font-size:13px}
-  .stat{margin-top:8px}
-  .core-hp{display:inline-block;padding:6px 8px;border-radius:8px;background:#fff;border:1px solid #eee}
-  ul{margin:6px 0 0 18px;padding:0}
-  small{color:#666}
-  @media(max-width:900px){
-    .wrap{flex-direction:column;align-items:center}
-    .board-wrap{order:1}
-    .sidebar{order:2;width:100%;max-width:unset}
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Core Breaker</title>
+    <style>
+        /* 기본 스타일 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+        }
+
+        /* 메인 메뉴 화면 */
+        #main-menu {
+            text-align: center;
+            padding: 40px;
+            border-radius: 10px;
+            background-color: #34495e;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        #main-menu h1 {
+            margin-bottom: 20px;
+            color: #e74c3c;
+        }
+
+        #main-menu p {
+            max-width: 500px;
+            line-height: 1.6;
+            color: #bdc3c7;
+        }
+
+        #start-button {
+            margin-top: 20px;
+            padding: 12px 25px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            background-color: #e74c3c;
+            color: white;
+            border-radius: 5px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        #start-button:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        /* 게임 컨테이너 */
+        #game-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #status-panel {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            background-color: #34495e;
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            width: 300px;
+            text-align: center;
+        }
+
+        /* 게임 보드 스타일 */
+        #game-board {
+            display: grid;
+            grid-template-columns: 30px repeat(10, 50px);
+            grid-template-rows: 30px repeat(10, 50px);
+            border: 2px solid #c0392b;
+            background-color: #fff;
+        }
+
+        .cell, .label {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+            font-size: 24px;
+            position: relative;
+        }
+        
+        .label {
+            color: #555;
+            background-color: #f0f0f0;
+        }
+
+        /* 코어, 기물 스타일 */
+        .core-p1 { background-color: rgba(70, 130, 180, 0.7); }
+        .core-p2 { background-color: rgba(220, 20, 60, 0.7); }
+        
+        .piece {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .piece:hover {
+            transform: scale(1.1);
+        }
+
+        .selected {
+            outline: 3px solid #f1c40f;
+            outline-offset: -3px;
+            border-radius: 5px;
+        }
+        
+        .movable {
+            background-color: rgba(46, 204, 113, 0.4);
+        }
+
+        .pushed::after {
+            content: '🛡️';
+            position: absolute;
+            font-size: 12px;
+            top: 0;
+            right: 0;
+            opacity: 0.8;
+        }
+
+    </style>
 </head>
 <body>
-  <h1>아스트라 워즈 — 체계화판</h1>
-  <div class="wrap">
-    <div class="board-wrap">
-      <div id="board" aria-label="game-board"></div>
+
+    <div id="main-menu">
+        <h1>Core Breaker</h1>
+        <div id="game-rules">
+            <h2>게임 룰</h2>
+            <p>
+                Core Breaker는 1대1 전략 보드게임입니다.<br>
+                각 플레이어는 자신의 코어를 보호하는 동시에 상대방의 코어를 파괴해야 합니다.<br>
+                코어의 체력은 3이며, 체력이 먼저 0이 되는 플레이어가 패배합니다.
+            </p>
+        </div>
+        <button id="start-button">게임 시작</button>
     </div>
 
-    <div class="sidebar">
-      <div class="panel">
-        <div class="row"><strong id="turnLabel">턴: 플레이어 1 (검정)</strong></div>
-        <div class="row stat">
-          <div>선택: <span id="selLabel">없음</span></div>
-          <div style="margin-left:auto">턴수: <span id="turnCount">0</span></div>
-        </div>
-
-        <div style="margin-top:10px">
-          <button id="btnEnd" class="btn">턴 종료</button>
-          <button id="btnReset" class="btn">리셋 (R)</button>
-        </div>
-
-        <div class="stat" style="margin-top:12px">
-          <div>코어 HP</div>
-          <div style="display:flex;gap:8px;margin-top:6px">
-            <div class="core-hp">플레이어1: <span id="hpP0">3</span></div>
-            <div class="core-hp">플레이어2: <span id="hpP1">3</span></div>
-          </div>
-        </div>
-
-        <div style="margin-top:12px"><small>기물 설명:</small>
-          <ul>
-            <li><b>Sentinel</b> — 직선(상하좌우)으로 이동. 적을 밀어내기(push).</li>
-            <li><b>Phantom</b> — L자 점프(2,1). 점프 후 1턴 쿨다운(다음 턴은 직선 1칸만 가능).</li>
-            <li><b>Arbiter</b> — 대각선 멀리 이동. 잡은 지점에 '속박'을 생성(1턴 동안 셀 사용 제한).</li>
-            <li><b>Crusader</b> — 직선 최대2칸, 대각선 1칸. 공격 시 적을 1칸 밀기(뒤칸 비어야 함).</li>
-            <li><b>Drone</b> — 전진(플레이어 방향). 코어 진입 시 자폭하여 코어 HP -1.</li>
-            <li><b>Overseer</b> — 1칸 전방향. 같은 행/열의 아군은 이동거리 +1(버프).</li>
-            <li><b>Core</b> — 2×2, HP 3. HP 0이면 패배.</li>
-          </ul>
-        </div>
-
-        <div class="log" id="log"></div>
-      </div>
+    <div id="game-container">
+        <div id="status-panel"></div>
+        <div id="game-board"></div>
     </div>
-  </div>
 
-<script>
-/* ========== 구조화된 구현 (다섯 번의 디버깅을 거쳐 정리됨) ========== */
+    <script>
+        // --- DOM 요소 ---
+        const mainMenu = document.getElementById('main-menu');
+        const gameContainer = document.getElementById('game-container');
+        const startButton = document.getElementById('start-button');
+        const boardElement = document.getElementById('game-board');
+        const statusPanel = document.getElementById('status-panel');
 
-/* 기본 상수 및 DOM 참조 */
-const ROWS = 10, COLS = 10;
-const boardEl = document.getElementById('board');
-const logEl = document.getElementById('log');
-const selLabel = document.getElementById('selLabel');
-const turnLabel = document.getElementById('turnLabel');
-const hpP0 = document.getElementById('hpP0'), hpP1 = document.getElementById('hpP1');
-const btnEnd = document.getElementById('btnEnd'), btnReset = document.getElementById('btnReset');
-const turnCountEl = document.getElementById('turnCount');
+        // --- 게임 상태 변수 ---
+        const BOARD_SIZE = 10;
+        const P1_CORE_LOCATIONS = ['b2', 'c2', 'b3', 'c3'];
+        const P2_CORE_LOCATIONS = ['h8', 'i8', 'h9', 'i9'];
+        
+        let coreHealth = { p1: 3, p2: 3 };
+        let currentPlayer = 'p1';
+        let gamePieces = {}; // 보드 위 기물 정보 저장
+        let selectedPiece = null; // 선택된 기물의 id
+        let isGameOver = false;
 
-let currentPlayer = 0; // 0 = P1, 1 = P2
-let turnCount = 0;
-let selected = null; // {r,c}
-let gridMap = new Map(); // key "r,c" -> cell object
-let gameOver = false;
-let coreHP = [3,3];
+        // 기물 초기 배치 설정
+        const initialSetup = {
+            'a1': { type: 'Striker', player: 'p1', pushed: false }, 'b1': { type: 'Cannon', player: 'p1' }, 'c1': { type: 'Striker', player: 'p1', pushed: false }, 'd1': { type: 'Breaker', player: 'p1' },
+            'a2': { type: 'Striker', player: 'p1', pushed: false },                                                 'd2': { type: 'Striker', player: 'p1', pushed: false },
+            'a3': { type: 'Tracer', player: 'p1' },                                                  'd3': { type: 'Tracer', player: 'p1' },
+            'a4': { type: 'Striker', player: 'p1', pushed: false }, 'b4': { type: 'Striker', player: 'p1', pushed: false }, 'c4': { type: 'Striker', player: 'p1', pushed: false }, 'd4': { type: 'Striker', player: 'p1', pushed: false },
+            
+            'g7': { type: 'Striker', player: 'p2', pushed: false }, 'h7': { type: 'Striker', player: 'p2', pushed: false }, 'i7': { type: 'Striker', player: 'p2', pushed: false }, 'j7': { type: 'Striker', player: 'p2', pushed: false },
+            'g8': { type: 'Tracer', player: 'p2' },                                                  'j8': { type: 'Tracer', player: 'p2' },
+            'g9': { type: 'Striker', player: 'p2', pushed: false },                                                 'j9': { type: 'Striker', player: 'p2', pushed: false },
+            'g10': { type: 'Breaker', player: 'p2' }, 'h10': { type: 'Striker', player: 'p2', pushed: false }, 'i10': { type: 'Cannon', player: 'p2' }, 'j10': { type: 'Striker', player: 'p2', pushed: false },
+        };
 
-/* 기물 타입(식별자 및 설명용) */
-const TYPES = {
-  core: {id:'core', name:'Core', immobile:true},
-  sentinel: {id:'sentinel', name:'Sentinel'},
-  phantom: {id:'phantom', name:'Phantom'},
-  arbiter: {id:'arbiter', name:'Arbiter'},
-  crusader: {id:'crusader', name:'Crusader'},
-  drone: {id:'drone', name:'Drone'},
-  overseer: {id:'overseer', name:'Overseer'}
-};
+        const pieceEmoji = {
+            'p1_Striker': ' S ', 'p1_Cannon': ' C ', 'p1_Tracer': ' T ', 'p1_Breaker': ' B ',
+            'p2_Striker': 's', 'p2_Cannon': 'c', 'p2_Tracer': 't', 'p2_Breaker': 'b'
+        };
 
-/* 유틸리티 */
-const key = (r,c) => `${r},${c}`;
-const colLetter = i => String.fromCharCode(97 + i);
-const inBoard = (r,c) => r>=1 && r<=ROWS && c>=1 && c<=COLS;
-const getCell = (r,c) => gridMap.get(key(r,c));
-const playerName = p => p===0 ? '플레이어1(검정)' : '플레이어2(흰)';
-function log(msg){ logEl.innerHTML += `${msg}<br>`; logEl.scrollTop = logEl.scrollHeight; }
+        // --- 함수 정의 ---
+        
+        function createBoard() {
+            boardElement.innerHTML = '';
+            const cols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
 
-/* 초기 그리드 생성: cell = {r,c,el,occupant:null,coreOwner:null,meta:{}} */
-function initGrid(){
-  boardEl.innerHTML = '';
-  gridMap.clear();
-  for(let r=1;r<=ROWS;r++){
-    for(let c=1;c<=COLS;c++){
-      const el = document.createElement('div');
-      const parity = ((r+c) % 2 === 0) ? 'light' : 'dark';
-      el.className = `cell ${parity}`;
-      el.dataset.r = r;
-      el.dataset.c = c;
-      const coord = document.createElement('div');
-      coord.className = 'coord';
-      coord.textContent = `${colLetter(c-1)}${r}`;
-      el.appendChild(coord);
-      el.addEventListener('click', ()=> onCellClick(r,c));
-      boardEl.appendChild(el);
-      gridMap.set(key(r,c), {r,c,el,occupant:null, coreOwner:null, meta:{}});
-    }
-  }
-}
-
-/* 코어 좌표(요청 반영): P1 (2,b)-(3,c) -> (2,2),(2,3),(3,2),(3,3) ; P2 (8,h)-(9,i) -> (8,8),(8,9),(9,8),(9,9) */
-const P1_CORE = [[2,2],[2,3],[3,2],[3,3]];
-const P2_CORE = [[8,8],[8,9],[9,8],[9,9]];
-
-/* 보드 초기 기물 배치(구석 중심 배치) - 충돌 피해서 배치 리스트 사용 */
-function placeInitialPieces(){
-  // clear
-  for(const cell of gridMap.values()){ cell.occupant = null; cell.coreOwner = null; cell.meta = {}; }
-
-  // set core owners (core cells not occupied by movable pieces)
-  P1_CORE.forEach(([r,c]) => { const cell = getCell(r,c); if(cell) cell.coreOwner = 0; });
-  P2_CORE.forEach(([r,c]) => { const cell = getCell(r,c); if(cell) cell.coreOwner = 1; });
-
-  // P1 positions (near top-left corner region)
-  const p1 = {
-    sentinel: [[1,1],[1,4],[4,1],[4,4]],
-    phantom: [[1,2],[1,3]],
-    arbiter: [[1,5],[1,6]],
-    crusader: [[2,1],[3,1]],
-    overseer: [[1,10]],
-    droneRow: 4 // fill row 4 for drones except core
-  };
-  // Place P1 special pieces
-  for(const [type, arr] of Object.entries({sentinel:p1.sentinel, phantom:p1.phantom, arbiter:p1.arbiter, crusader:p1.crusader})){
-    arr.forEach(([r,c]) => setPiece(r,c,0,type));
-  }
-  setPiece(1,10,0,'overseer');
-  // P1 drones across row 4 (skip core cells)
-  for(let c=1;c<=COLS;c++){
-    const r = p1.droneRow;
-    const cell = getCell(r,c);
-    if(cell && !cell.coreOwner && !cell.occupant) setPiece(r,c,0,'drone');
-  }
-
-  // P2 positions (mirror bottom-right)
-  const p2 = {
-    sentinel: [[10,10],[10,7],[7,10],[7,7]],
-    phantom: [[10,9],[10,8]],
-    arbiter: [[10,6],[10,5]],
-    crusader: [[9,10],[8,10]],
-    overseer: [[10,1]],
-    droneRow: 7
-  };
-  for(const [type, arr] of Object.entries({sentinel:p2.sentinel, phantom:p2.phantom, arbiter:p2.arbiter, crusader:p2.crusader})){
-    arr.forEach(([r,c]) => setPiece(r,c,1,type));
-  }
-  setPiece(10,1,1,'overseer');
-  for(let c=1;c<=COLS;c++){
-    const r = p2.droneRow;
-    const cell = getCell(r,c);
-    if(cell && !cell.coreOwner && !cell.occupant) setPiece(r,c,1,'drone');
-  }
-
-  // reset core HP
-  coreHP = [3,3];
-  updateHP();
-}
-
-/* set piece helper */
-function setPiece(r,c,player,type){
-  const cell = getCell(r,c);
-  if(!cell) return;
-  cell.occupant = {player, type, meta:{}};
-}
-
-/* rendering */
-function render(){
-  for(const cell of gridMap.values()){
-    const el = cell.el;
-    // reset classes
-    el.classList.remove('core1','core2','core-border','highlight-move','highlight-attack');
-    // apply core backgrounds
-    if(cell.coreOwner === 0) el.classList.add('core1');
-    else if(cell.coreOwner === 1) el.classList.add('core2');
-    // core border accent
-    if(cell.coreOwner !== null) el.classList.add('core-border');
-    // clean piece/type nodes
-    Array.from(el.querySelectorAll('.piece, .type-label, .stasis-overlay')).forEach(n => n.remove());
-    // show occupant if exists
-    if(cell.occupant){
-      const p = cell.occupant;
-      const node = document.createElement('div');
-      node.className = 'piece ' + (p.player===0 ? 'p0' : 'p1');
-      node.textContent = p.type[0].toUpperCase();
-      el.appendChild(node);
-      const lbl = document.createElement('div'); lbl.className='type-label'; lbl.textContent = p.type.slice(0,3).toUpperCase();
-      el.appendChild(lbl);
-      // show cooldown marker if phantom in cooldown
-      if(p.meta && p.meta.cooldownTurns > 0){
-        const cd = document.createElement('div');
-        cd.style.position='absolute'; cd.style.left='6px'; cd.style.bottom='6px'; cd.style.fontSize='10px'; cd.style.color='#b00';
-        cd.textContent = `CD${p.meta.cooldownTurns}`;
-        el.appendChild(cd);
-      }
-    }
-    // show stasis overlay if cell.meta.stasisTurns > 0
-    if(cell.meta && cell.meta.stasisTurns && cell.meta.stasisTurns > 0){
-      const ov = document.createElement('div');
-      ov.className = 'stasis-overlay';
-      ov.textContent = 'LOCK';
-      el.appendChild(ov);
-    }
-  }
-  updateSidebar();
-}
-
-/* sidebar update */
-function updateSidebar(){
-  selLabel.textContent = selected ? `${colLetter(selected.c-1)}${selected.r}` : '없음';
-  turnLabel.textContent = `턴: ${playerName(currentPlayer)}`;
-  turnCountEl.textContent = turnCount;
-  hpP0.textContent = coreHP[0]; hpP1.textContent = coreHP[1];
-}
-
-/* handle cell clicks */
-function onCellClick(r,c){
-  if(gameOver) return;
-  const cell = getCell(r,c);
-  // if not selected: select own movable piece
-  if(!selected){
-    if(!cell.occupant){ log('기물을 선택하세요.'); return; }
-    if(cell.occupant.player !== currentPlayer){ log('자신의 기물만 선택 가능합니다.'); return; }
-    if(cell.occupant.type === 'core'){ log('코어는 선택할 수 없습니다.'); return; }
-    // if stasis on cell, cannot select/move
-    if(cell.meta && cell.meta.stasisTurns > 0){ log('이 기물은 속박되어 이동할 수 없습니다.'); return; }
-    selected = {r,c};
-    clearHighlights();
-    highlightMoves(selected.r, selected.c);
-    render();
-    return;
-  }
-  // if clicked same cell -> deselect
-  if(selected.r === r && selected.c === c){ selected = null; clearHighlights(); render(); return; }
-
-  const tgt = getCell(r,c);
-  if(tgt.el.classList.contains('highlight-move')){
-    performMove(selected, {r,c});
-    selected = null; clearHighlights(); render();
-    return;
-  }
-  if(tgt.el.classList.contains('highlight-attack')){
-    performAttack(selected, {r,c});
-    selected = null; clearHighlights(); render();
-    return;
-  }
-  log('유효한 대상(이동/공격)을 선택하세요.');
-}
-
-/* clear highlights */
-function clearHighlights(){ for(const cell of gridMap.values()){ cell.el.classList.remove('highlight-move','highlight-attack'); } }
-
-/* check overseer buff for a player's piece at (r,c): returns buffRange (integer) */
-function overseerBuffFor(player, r, c){
-  // if any overseer of same player exists in same row or same column -> buff +1
-  for(const cell of gridMap.values()){
-    if(cell.occupant && cell.occupant.player === player && cell.occupant.type === 'overseer'){
-      if(cell.r === r || cell.c === c) return 1;
-    }
-  }
-  return 0;
-}
-
-/* highlight logic per piece (uses getCell and gridMap) */
-function highlightMoves(r,c){
-  const src = getCell(r,c);
-  if(!src || !src.occupant) return;
-  const occ = src.occupant;
-  const player = occ.player;
-  const type = occ.type;
-  const buff = overseerBuffFor(player, r, c); // buff increments range where applicable
-
-  const markMove = (cell) => { if(cell && !cell.coreOwner && !cell.occupant) cell.el.classList.add('highlight-move'); };
-  const markAttack = (cell) => { if(cell) cell.el.classList.add('highlight-attack'); };
-
-  // if phantom in cooldown, restrict moves to orth 1 only
-  const phantomCooldown = (type === 'phantom' && occ.meta && occ.meta.cooldownTurns > 0);
-
-  if(type === 'sentinel'){
-    const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
-    for(const [dr,dc] of dirs){
-      let step = 1;
-      while(true){
-        const nr = r + dr*step, nc = c + dc*step;
-        if(!inBoard(nr,nc)) break;
-        const t = getCell(nr,nc);
-        if(t.occupant === null){
-          // allow drone to move into core? sentinel moving into core shouldn't occupy, treat core as attack target instead
-          if(t.coreOwner === null) markMove(t);
-          else { /* core present: treat as attack */ if(t.coreOwner !== player) markAttack(t); break; }
-        } else {
-          if(t.occupant.player !== player){
-            // enemy encountered: if behind is empty -> push attack OR if target is core -> core attack
-            const br = nr + dr, bc = nc + dc;
-            if(inBoard(br,bc) && !getCell(br,bc).occupant && getCell(br,bc).coreOwner === null){
-              markAttack(t);
-            } else if(t.coreOwner !== null && t.coreOwner !== player){
-              markAttack(t);
+            for (let row = 0; row <= BOARD_SIZE; row++) {
+                for (let col = 0; col <= BOARD_SIZE; col++) {
+                    const element = document.createElement('div');
+                    if (row === 0 && col === 0) {
+                        element.classList.add('label');
+                    } else if (row === 0) {
+                        element.classList.add('label');
+                        element.textContent = cols[col - 1];
+                    } else if (col === 0) {
+                        element.classList.add('label');
+                        element.textContent = row;
+                    } else {
+                        const cellId = `${cols[col - 1]}${row}`;
+                        element.classList.add('cell');
+                        element.id = cellId;
+                        if ((row + col) % 2 === 0) {
+                            element.style.backgroundColor = '#f0d9b5';
+                        } else {
+                            element.style.backgroundColor = '#b58863';
+                        }
+                        element.addEventListener('click', () => handleCellClick(cellId));
+                    }
+                    boardElement.appendChild(element);
+                }
             }
-          }
-          break;
         }
-        step++;
-      }
-    }
-  } else if(type === 'phantom'){
-    // if on cooldown: only orth 1 allowed
-    if(phantomCooldown){
-      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
-      dirs.forEach(([dr,dc]) => {
-        const nr=r+dr, nc=c+dc;
-        if(!inBoard(nr,nc)) return;
-        const t = getCell(nr,nc);
-        if(!t.occupant && t.coreOwner===null) markMove(t);
-        else if(t.occupant && t.occupant.player !== player) markAttack(t);
-        else if(t.coreOwner !== null && t.coreOwner !== player) markAttack(t);
-      });
-    } else {
-      const moves = [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]];
-      moves.forEach(([dr,dc])=>{
-        const nr=r+dr, nc=c+dc;
-        if(!inBoard(nr,nc)) return;
-        const t = getCell(nr,nc);
-        if(!t.occupant && t.coreOwner===null) markMove(t);
-        else if(t.occupant && t.occupant.player !== player) markAttack(t);
-        else if(t.coreOwner !== null && t.coreOwner !== player) markAttack(t);
-      });
-    }
-  } else if(type === 'arbiter'){
-    const dirs = [[1,1],[1,-1],[-1,1],[-1,-1]];
-    for(const [dr,dc] of dirs){
-      let step=1;
-      while(true){
-        const nr=r+dr*step, nc=c+dc*step;
-        if(!inBoard(nr,nc)) break;
-        const t = getCell(nr,nc);
-        if(!t.occupant){
-          if(t.coreOwner === null) markMove(t);
-          else { if(t.coreOwner !== player) markAttack(t); break; }
-        } else {
-          if(t.occupant.player !== player) markAttack(t);
-          break;
+
+        function placeInitialPieces() {
+            P1_CORE_LOCATIONS.forEach(id => document.getElementById(id)?.classList.add('core-p1'));
+            P2_CORE_LOCATIONS.forEach(id => document.getElementById(id)?.classList.add('core-p2'));
+
+            gamePieces = JSON.parse(JSON.stringify(initialSetup));
+            drawPieces();
         }
-        step++;
-      }
-    }
-  } else if(type === 'crusader'){
-    // orth up to 2 (+buff)
-    const maxOrth = 2 + buff;
-    const orth = [[1,0],[-1,0],[0,1],[0,-1]];
-    for(const [dr,dc] of orth){
-      for(let step=1; step<=maxOrth; step++){
-        const nr=r+dr*step, nc=c+dc*step;
-        if(!inBoard(nr,nc)) break;
-        const t = getCell(nr,nc);
-        if(!t.occupant){
-          if(t.coreOwner===null) markMove(t);
-          else { if(t.coreOwner !== player) markAttack(t); break; }
-        } else {
-          if(t.occupant.player !== player){
-            const br = nr + dr, bc = nc + dc;
-            if(inBoard(br,bc) && !getCell(br,bc).occupant && getCell(br,bc).coreOwner===null) markAttack(t);
-            else if(t.coreOwner !== null && t.coreOwner !== player) markAttack(t);
-          }
-          break;
+        
+        function drawPieces() {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.textContent = '';
+                cell.classList.remove('pushed');
+            });
+            
+            for (const id in gamePieces) {
+                const piece = gamePieces[id];
+                const cell = document.getElementById(id);
+                if (cell) {
+                    const key = `${piece.player}_${piece.type}`;
+                    cell.textContent = pieceEmoji[key] || '';
+                    cell.style.color = piece.player === 'p1' ? 'steelblue' : 'crimson';
+                    if (piece.type === 'Striker' && piece.pushed) {
+                        cell.classList.add('pushed');
+                    }
+                }
+            }
         }
-      }
-    }
-    // diag 1
-    const diags = [[1,1],[1,-1],[-1,1],[-1,-1]];
-    diags.forEach(([dr,dc])=>{
-      const nr=r+dr, nc=c+dc;
-      if(!inBoard(nr,nc)) return;
-      const t = getCell(nr,nc);
-      if(!t.occupant && t.coreOwner===null) markMove(t);
-      else if(t.occupant && t.occupant.player !== player) markAttack(t);
-      else if(t.coreOwner !== null && t.coreOwner !== player) markAttack(t);
-    });
-  } else if(type === 'drone'){
-    const dir = player===0 ? 1 : -1;
-    const nr = r + dir, nc = c;
-    if(inBoard(nr,nc)){
-      const t = getCell(nr,nc);
-      // allow drone to move into core (self-destruct) -> treat as move
-      if(!t.occupant) markMove(t);
-      else if(t.occupant.player !== player) markAttack(t);
-    }
-    // starting double move (we placed drones at specific rows)
-    const startRow = player===0 ? 4 : 7;
-    if(r === startRow){
-      const nr2 = r + dir*2;
-      if(inBoard(nr2,nc) && !getCell(r+dir,nc).occupant && !getCell(nr2,nc).occupant) markMove(getCell(nr2,nc));
-    }
-  } else if(type === 'overseer'){
-    for(let dr=-1; dr<=1; dr++){
-      for(let dc=-1; dc<=1; dc++){
-        if(dr===0 && dc===0) continue;
-        const nr=r+dr, nc=c+dc;
-        if(!inBoard(nr,nc)) continue;
-        const t = getCell(nr,nc);
-        if(!t.occupant && t.coreOwner===null) markMove(t);
-        else if(t.occupant && t.occupant.player !== player) markAttack(t);
-        else if(t.coreOwner !== null && t.coreOwner !== player) markAttack(t);
-      }
-    }
-  }
-}
 
-/* move (non-attack) logic: respects core as special cell (don't place occupant on core) */
-function performMove(from, to){
-  const src = getCell(from.r, from.c), dst = getCell(to.r, to.c);
-  if(!src || !dst || !src.occupant) return;
-  const occ = src.occupant;
-  // if destination is core owned by opponent -> handle damage
-  if(dst.coreOwner !== null && dst.coreOwner !== occ.player){
-    // drone self-destruct specially
-    if(occ.type === 'drone'){
-      coreHP[dst.coreOwner] -= 1;
-      src.occupant = null; // drone removed
-      log(`${playerName(occ.player)}의 Drone이 ${coord(to)}에 돌입하여 자폭: 코어 HP -1 (남음 ${coreHP[dst.coreOwner]})`);
-      updateHP(); checkGameOver();
-      endTurnHousekeeping();
-      return;
-    } else {
-      // non-drone pieces damage core by 1 but DO NOT occupy core cell
-      coreHP[dst.coreOwner] -= 1;
-      log(`${playerName(occ.player)}의 ${occ.type}이(가) 상대 코어에 진입 시도: 코어 HP -1 (남음 ${coreHP[dst.coreOwner]})`);
-      updateHP(); checkGameOver();
-      // move piece to dst? We choose to keep piece in src (no occupation) to avoid overwriting core cell
-      // but to keep previous behavior similar, move piece adjacent (not on core). We'll NOT move onto core.
-      endTurnHousekeeping();
-      return;
-    }
-  }
-  // normal move into empty non-core cell
-  dst.occupant = occ;
-  src.occupant = null;
-  log(`${playerName(occ.player)} 이동: ${coord(from)} → ${coord(to)}`);
-  endTurnHousekeeping();
-}
+        function updateStatus() {
+            if (isGameOver) return;
+            const turnText = currentPlayer === 'p1' ? "Player 1's Turn" : "Player 2's Turn";
+            statusPanel.innerHTML = `P1 HP: ${coreHealth.p1} | P2 HP: ${coreHealth.p2}<br>${turnText}`;
+        }
+        
+        function checkGameOver() {
+            if (coreHealth.p1 <= 0) {
+                statusPanel.textContent = 'Player 2 Wins!';
+                isGameOver = true;
+            } else if (coreHealth.p2 <= 0) {
+                statusPanel.textContent = 'Player 1 Wins!';
+                isGameOver = true;
+            }
+            if (isGameOver) {
+                boardElement.style.pointerEvents = 'none';
+            }
+        }
 
-/* attack logic: handles each type's special attack effects */
-function performAttack(from, to){
-  const src = getCell(from.r, from.c), dst = getCell(to.r, to.c);
-  if(!src || !dst || !src.occupant) return;
-  const occ = src.occupant;
-  const player = occ.player;
-  const type = occ.type;
+        function switchTurn() {
+            currentPlayer = (currentPlayer === 'p1') ? 'p2' : 'p1';
+            updateStatus();
+        }
 
-  if(type === 'sentinel'){
-    // push attack: push enemy to behind
-    const dr = dst.r - src.r, dc = dst.c - src.c;
-    const br = dst.r + dr, bc = dst.c + dc;
-    if(inBoard(br,bc) && !getCell(br,bc).occupant && getCell(br,bc).coreOwner===null){
-      getCell(br,bc).occupant = dst.occupant;
-      dst.occupant = occ;
-      src.occupant = null;
-      log(`${playerName(player)}의 Sentinel이 ${coord(to)} 공격: 적을 ${coord({r:br,c:bc})}로 밀어냄`);
-    } else {
-      // if dst is coreOwner (core cell), allow damage instead
-      if(dst.coreOwner !== null && dst.coreOwner !== player){
-        coreHP[dst.coreOwner] -= 1;
-        log(`${playerName(player)}의 Sentinel이 상대 코어에 공격하여 HP -1 (남음 ${coreHP[dst.coreOwner]})`);
-        updateHP(); checkGameOver();
-      } else { log('밀기 불가: 뒤칸이 비어있지 않음.'); return; }
-    }
-  } else if(type === 'phantom'){
-    // jump capture: midpoint removed if enemy
-    const midr = (from.r + to.r) / 2, midc = (from.c + to.c) / 2;
-    if(Number.isInteger(midr) && Number.isInteger(midc)){
-      const mid = getCell(midr, midc);
-      if(mid && mid.occupant && mid.occupant.player !== player){
-        mid.occupant = null;
-      }
-    }
-    // landing on core damages core (but won't occupy core)
-    if(dst.coreOwner !== null && dst.coreOwner !== player){
-      coreHP[dst.coreOwner] -= 1;
-      log(`${playerName(player)}의 Phantom이 코어 근처 점프: 코어 HP -1 (남음 ${coreHP[dst.coreOwner]})`);
-      updateHP(); checkGameOver();
-      // phantom lands but if landing cell is core, we do not place occupant on core
-      if(dst.coreOwner === null) dst.occupant = occ;
-      else src.occupant = null; // remove original phantom to imply jump used
-    } else {
-      dst.occupant = occ;
-      src.occupant = null;
-    }
-    // apply phantom cooldown: next turn restricted
-    dst.occupant && (dst.occupant.meta.cooldownTurns = 1);
-    log(`${playerName(player)}의 Phantom이 점프: ${coord(from)} → ${coord(to)} (쿨다운 부여)`);
-  } else if(type === 'arbiter'){
-    // capture & stasis: remove enemy and apply stasis on that cell for 1 turn, then occupy cell
-    if(dst.occupant && dst.occupant.player !== player){
-      dst.occupant = {player,type:'arbiter',meta:{}}; // arbiter moves in
-      src.occupant = null;
-      dst.meta = dst.meta || {};
-      dst.meta.stasisTurns = 1; // blocks movement from this cell for next turn
-      log(`${playerName(player)}의 Arbiter가 ${coord(to)}의 적을 속박(제거)하고 자리 차지`);
-    } else if(dst.coreOwner !== null && dst.coreOwner !== player){
-      // attacking core: damage
-      coreHP[dst.coreOwner] -= 1;
-      log(`${playerName(player)}의 Arbiter가 상대 코어 공격: HP -1 (남음 ${coreHP[dst.coreOwner]})`);
-      updateHP(); checkGameOver();
-    } else {
-      log('Arbiter 공격 실패');
-      return;
-    }
-  } else if(type === 'crusader'){
-    // diag capture: simple replace; orth push if behind empty
-    const dr = dst.r - src.r, dc = dst.c - src.c;
-    if(Math.abs(dr) === Math.abs(dc) && Math.abs(dr) === 1){
-      dst.occupant = occ;
-      src.occupant = null;
-      log(`${playerName(player)}의 Crusader가 대각선으로 ${coord(to)} 점령`);
-    } else {
-      const br = dst.r + Math.sign(dr), bc = dst.c + Math.sign(dc);
-      if(inBoard(br,bc) && !getCell(br,bc).occupant && getCell(br,bc).coreOwner===null){
-        getCell(br,bc).occupant = dst.occupant;
-        dst.occupant = occ;
-        src.occupant = null;
-        log(`${playerName(player)}의 Crusader가 ${coord(to)} 공격: 적을 ${coord({r:br,c:bc})}로 밀어냄`);
-      } else if(dst.coreOwner !== null && dst.coreOwner !== player){
-        coreHP[dst.coreOwner] -= 1;
-        log(`${playerName(player)}의 Crusader가 상대 코어에 공격: HP -1 (남음 ${coreHP[dst.coreOwner]})`);
-        updateHP(); checkGameOver();
-      } else {
-        log('Crusader 밀기 실패: 뒤칸이 비어있지 않음.');
-        return;
-      }
-    }
-  } else if(type === 'drone'){
-    // drone attack: replace target (forward capture). If target is core, drone self-destruct and damage core.
-    if(dst.coreOwner !== null && dst.coreOwner !== player){
-      coreHP[dst.coreOwner] -= 1;
-      src.occupant = null;
-      log(`${playerName(player)}의 Drone이 코어 자폭 공격: 코어 HP -1 (남음 ${coreHP[dst.coreOwner]})`);
-      updateHP(); checkGameOver();
-    } else {
-      dst.occupant = occ;
-      src.occupant = null;
-      log(`${playerName(player)}의 Drone이 ${coord(to)}로 돌파하여 점령`);
-    }
-  } else if(type === 'overseer'){
-    // capture
-    dst.occupant = occ;
-    src.occupant = null;
-    log(`${playerName(player)}의 Overseer가 ${coord(to)}의 적을 제거`);
-  }
+        function clearHighlights() {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('selected', 'movable');
+            });
+        }
+        
+        function parseId(id) {
+            const col = id.charCodeAt(0) - 'a'.charCodeAt(0);
+            const row = parseInt(id.substring(1)) - 1;
+            return { col, row };
+        }
 
-  endTurnHousekeeping();
-}
+        function toId(col, row) {
+            if (col < 0 || col >= 10 || row < 0 || row >= 10) return null;
+            return `${String.fromCharCode('a'.charCodeAt(0) + col)}${row + 1}`;
+        }
+        
+        function getValidMoves(pieceId) {
+            const piece = gamePieces[pieceId];
+            if (!piece) return [];
 
-/* turn housekeeping: decrement metas, check drone-core auto, apply end-turn */
-function endTurnHousekeeping(){
-  // decrement stasis and cooldowns
-  for(const cell of gridMap.values()){
-    if(cell.meta && cell.meta.stasisTurns){
-      cell.meta.stasisTurns -= 1;
-      if(cell.meta.stasisTurns <= 0) delete cell.meta.stasisTurns;
-    }
-    if(cell.occupant && cell.occupant.meta){
-      if(typeof cell.occupant.meta.cooldownTurns === 'number'){
-        cell.occupant.meta.cooldownTurns -= 1;
-        if(cell.occupant.meta.cooldownTurns <= 0) delete cell.occupant.meta.cooldownTurns;
-      }
-    }
-  }
-  // drones already handled in attack/move. But check drones that may have moved into core by other logic:
-  for(const cell of gridMap.values()){
-    if(cell.occupant && cell.occupant.type === 'drone'){
-      const core = cell.coreOwner;
-      if(core !== null && core !== cell.occupant.player){
-        // drone self-destruct
-        coreHP[core] -= 1;
-        log(`${playerName(cell.occupant.player)}의 Drone이 ${coord({r:cell.r,c:cell.c})}에서 자폭: 코어 HP -1 (남음 ${coreHP[core]})`);
-        cell.occupant = null;
-        updateHP(); checkGameOver();
-      }
-    }
-  }
+            const { col, row } = parseId(pieceId);
+            const moves = [];
+            
+            switch (piece.type) {
+                case 'Striker':
+                    const dir = piece.player === 'p1' ? 1 : -1;
+                    [-1, 0, 1].forEach(dCol => {
+                         [dir].forEach(dRow => {
+                            const nextId = toId(col + dCol, row + dRow);
+                            if (nextId && !gamePieces[nextId]) moves.push(nextId);
+                        });
+                    });
+                     [-1, 0, 1].forEach(dCol => {
+                         [-1, 0, 1].forEach(dRow => {
+                            if (dCol === 0 && dRow === 0) return;
+                            const targetId = toId(col + dCol, row + dRow);
+                            if (targetId && gamePieces[targetId] && gamePieces[targetId].player !== piece.player) {
+                                moves.push(targetId);
+                            }
+                        });
+                    });
+                    break;
+                case 'Cannon':
+                    [[0,1], [0,-1], [1,0], [-1,0]].forEach(([dCol, dRow]) => {
+                        for (let i = 1; i <= 2; i++) {
+                            const nextId = toId(col + dCol * i, row + dRow * i);
+                            if (nextId && !gamePieces[nextId]) moves.push(nextId);
+                            else break;
+                        }
+                    });
+                     [[0,1], [0,-1], [1,0], [-1,0]].forEach(([dCol, dRow]) => {
+                        for (let i = 1; i <= 4; i++) {
+                            const targetId = toId(col + dCol * i, row + dRow * i);
+                            if (!targetId) break;
+                            if (gamePieces[targetId]) {
+                                if (gamePieces[targetId].player !== piece.player) moves.push(targetId);
+                                break;
+                            }
+                        }
+                    });
+                    break;
+                case 'Tracer':
+                    [[2,2], [2,-2], [-2,2], [-2,-2]].forEach(([dCol, dRow]) => {
+                        const nextId = toId(col + dCol, row + dRow);
+                        if (nextId && (!gamePieces[nextId] || gamePieces[nextId].player !== piece.player)) moves.push(nextId);
+                    });
+                    break;
+                case 'Breaker':
+                    for (let dCol = -1; dCol <= 1; dCol++) {
+                        for (let dRow = -1; dRow <= 1; dRow++) {
+                            if (dCol === 0 && dRow === 0) continue;
+                            const nextId = toId(col + dCol, row + dRow);
+                            if (nextId && (!gamePieces[nextId] || gamePieces[nextId].player !== piece.player)) {
+                                moves.push(nextId);
+                            }
+                        }
+                    }
+                    break;
+            }
+            return moves;
+        }
 
-  // advance turn
-  currentPlayer = 1 - currentPlayer;
-  turnCount++;
-  render();
-}
+        function movePiece(fromId, toId) {
+            const piece = gamePieces[fromId];
+            const target = gamePieces[toId];
 
-/* helpers */
-function coord(pos){ return `${colLetter(pos.c-1)}${pos.r}`; }
-function updateHP(){ hpP0.textContent = coreHP[0]; hpP1.textContent = coreHP[1]; }
-function checkGameOver(){
-  if(coreHP[0] <= 0 || coreHP[1] <= 0){
-    const winner = coreHP[0] <= 0 ? 1 : 0;
-    log(`🎉 ${playerName(winner)} 승리! 상대 코어 파괴.`);
-    gameOver = true;
-    for(const cell of gridMap.values()) cell.el.style.pointerEvents = 'none';
-  }
-}
+            // 액션 처리
+            if (target) { // 공격
+                if (piece.type === 'Striker' && target.type === 'Striker') {
+                    if (target.pushed) {
+                        delete gamePieces[toId];
+                    } else {
+                        const { col: fromCol, row: fromRow } = parseId(fromId);
+                        const { col: toCol, row: toRow } = parseId(toId);
+                        const pushId = toId(toCol + (toCol - fromCol), toRow + (toRow - fromRow));
+                        
+                        if (pushId && !gamePieces[pushId]) {
+                             gamePieces[pushId] = target;
+                             target.pushed = true;
+                        } else {
+                            delete gamePieces[toId];
+                        }
+                    }
+                } else {
+                     delete gamePieces[toId];
+                }
+            
+            // ================= BUG FIX START =================
+            // 기존의 버그를 유발하던 코드를 삭제하고, 정상 작동하는 새 로직으로 교체합니다.
+            } else if (piece.type === 'Breaker') {
+                const opponent = piece.player === 'p1' ? 'p2' : 'p1';
+                const opponentCore = opponent === 'p1' ? P1_CORE_LOCATIONS : P2_CORE_LOCATIONS;
+                const { col: toCol, row: toRow } = parseId(toId);
+                let isAdjacentToCore = false;
 
-/* end-turn and reset bindings */
-btnEnd.addEventListener('click', ()=>{ if(gameOver) return; selected = null; clearHighlights(); currentPlayer = 1 - currentPlayer; turnCount++; render(); });
-btnReset.addEventListener('click', resetGame);
-window.addEventListener('keydown', (e) => { if(e.key === 'r' || e.key === 'R') resetGame(); });
+                // 이동하려는 위치(toId)가 상대 코어에 인접한지 확인
+                for (const coreCellId of opponentCore) {
+                    const { col: coreCol, row: coreRow } = parseId(coreCellId);
+                    if (Math.abs(toCol - coreCol) <= 1 && Math.abs(toRow - coreRow) <= 1) {
+                        isAdjacentToCore = true;
+                        break;
+                    }
+                }
+                
+                // 만약 인접하다면, 자폭하고 1의 데미지를 줍니다.
+                if (isAdjacentToCore) {
+                    coreHealth[opponent]--;
+                    delete gamePieces[fromId]; // Breaker는 이동하지 않고 사라집니다.
+                    return; // 함수를 즉시 종료합니다.
+                }
+            }
+            // ================= BUG FIX END ===================
+            
+            // 이동
+            gamePieces[toId] = piece;
+            delete gamePieces[fromId];
+        }
 
-/* reset */
-function resetGame(){
-  gameOver = false; selected = null; currentPlayer = 0; turnCount = 0;
-  initGrid(); placeInitialPieces(); render();
-  for(const cell of gridMap.values()) cell.el.style.pointerEvents = 'auto';
-  log('게임 리셋');
-}
+        function handleCellClick(id) {
+            if (isGameOver) return;
+            const piece = gamePieces[id];
+            
+            if (selectedPiece) {
+                const validMoves = getValidMoves(selectedPiece);
+                if (validMoves.includes(id)) {
+                    movePiece(selectedPiece, id);
+                    drawPieces();
+                    clearHighlights();
+                    selectedPiece = null;
+                    checkGameOver();
+                    if (!isGameOver) switchTurn();
+                } else {
+                    clearHighlights();
+                    selectedPiece = null;
+                    if (piece && piece.player === currentPlayer) {
+                        selectedPiece = id;
+                        document.getElementById(id).classList.add('selected');
+                        getValidMoves(id).forEach(move => {
+                            document.getElementById(move)?.classList.add('movable');
+                        });
+                    }
+                }
+            } else if (piece && piece.player === currentPlayer) {
+                selectedPiece = id;
+                document.getElementById(id).classList.add('selected');
+                getValidMoves(id).forEach(move => {
+                    document.getElementById(move)?.classList.add('movable');
+                });
+            }
+        }
 
-/* startup */
-initGrid();
-placeInitialPieces();
-render();
-log('게임 시작: 플레이어1(검정) 차례');
+        function startGame() {
+            mainMenu.style.display = 'none';
+            gameContainer.style.display = 'flex';
+            
+            createBoard();
+            placeInitialPieces();
+            updateStatus();
+        }
 
-/* expose for debugging */
-window._gridMap = gridMap;
-window.resetGame = resetGame;
+        // --- 이벤트 리스너 ---
+        startButton.addEventListener('click', startGame);
 
-</script>
+    </script>
 </body>
 </html>
