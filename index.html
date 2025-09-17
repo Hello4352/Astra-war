@@ -88,6 +88,7 @@
             justify-content: center;
             align-items: center;
             font-weight: bold;
+            user-select: none;
         }
 
         .cell {
@@ -97,6 +98,8 @@
             box-sizing: border-box;
             font-size: 24px;
             position: relative;
+            overflow: hidden;
+            cursor: pointer;
         }
         
         .label {
@@ -111,24 +114,28 @@
         
         /* === 수정된 부분: 코어 시각화 === */
         .core-p1::after, .core-p2::after {
-            content: '💎'; /* 코어를 나타내는 이모지 */
+            content: '💎';
             position: absolute;
             font-size: 30px;
             opacity: 0.3;
             z-index: 0;
-            pointer-events: none; /* 클릭 방지 */
+            pointer-events: none;
         }
         
         .core-p1 { background-color: rgba(70, 130, 180, 0.7); }
         .core-p2 { background-color: rgba(220, 20, 60, 0.7); }
         
+        /* 기물 아이콘 */
         .piece {
-            cursor: pointer;
-            transition: transform 0.2s;
+            width: 36px;
+            height: 36px;
+            display: block;
+            pointer-events: none; /* 클릭은 셀에서 처리 */
+            transform-origin: center;
+            transition: transform 0.12s;
         }
-        .piece:hover {
-            transform: scale(1.1);
-        }
+
+        .cell:hover .piece { transform: scale(1.08); }
 
         .selected {
             outline: 3px solid #f1c40f;
@@ -147,6 +154,7 @@
             top: 0;
             right: 0;
             opacity: 0.8;
+            pointer-events: none;
         }
 
     </style>
@@ -203,11 +211,39 @@
             'g10': { type: 'Breaker', player: 'p2' }, 'h10': { type: 'Striker', player: 'p2', pushed: false }, 'i10': { type: 'Cannon', player: 'p2' }, 'j10': { type: 'Striker', player: 'p2', pushed: false },
         };
 
-        const pieceEmoji = {
-            'p1_Striker': ' S ', 'p1_Cannon': ' C ', 'p1_Tracer': ' T ', 'p1_Breaker': ' B ',
-            'p2_Striker': 's', 'p2_Cannon': 'c', 'p2_Tracer': 't', 'p2_Breaker': 'b'
-        };
+        // --- SVG 아이콘 생성 (데이터 URI) ---
+        function makePieceDataURI(player, type) {
+            // 색상과 문자 매핑
+            const defs = {
+                p1: { color: '#2c9fd6', stroke: '#1b6f94' },
+                p2: { color: '#d64550', stroke: '#8b2a2f' }
+            };
+            const letters = {
+                'Striker': 'S',
+                'Cannon': 'C',
+                'Tracer': 'T',
+                'Breaker': 'B'
+            };
+            const { color, stroke } = defs[player];
+            const letter = letters[type] || '?';
+            // SVG: 둥근 배경 + 문자
+            const svg =
+`<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'>
+  <defs>
+    <filter id="sh" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <g filter="url(#sh)">
+    <circle cx="32" cy="32" r="26" fill="${color}" stroke="${stroke}" stroke-width="3"/>
+  </g>
+  <text x="32" y="38" font-family="Segoe UI, Roboto, Arial" font-size="30" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text>
+</svg>`;
+            return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+        }
 
+        // --- 기존 이모지 매핑 대체 필요 없음: drawPieces에서 이미지를 삽입함 ---
+        
         // --- 함수 정의 ---
         
         function createBoard() {
@@ -257,15 +293,23 @@
             document.querySelectorAll('.cell').forEach(cell => {
                 cell.textContent = '';
                 cell.classList.remove('pushed');
+                // Remove any inner HTML to avoid duplication
+                cell.innerHTML = '';
             });
             
             for (const id in gamePieces) {
                 const piece = gamePieces[id];
                 const cell = document.getElementById(id);
                 if (cell) {
-                    const key = `${piece.player}_${piece.type}`;
-                    cell.textContent = pieceEmoji[key] || '';
-                    cell.style.color = piece.player === 'p1' ? 'steelblue' : 'crimson';
+                    // 이미지 삽입
+                    const src = makePieceDataURI(piece.player, piece.type);
+                    const img = document.createElement('img');
+                    img.src = src;
+                    img.alt = piece.type;
+                    img.className = 'piece';
+                    cell.appendChild(img);
+
+                    // pushed 상태 표시 (셀에 클래스)
                     if (piece.type === 'Striker' && piece.pushed) {
                         cell.classList.add('pushed');
                     }
