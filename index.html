@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Core Breaker</title>
     <style>
-        /* 기본 스타일 */
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
             display: flex;
@@ -18,7 +17,6 @@
             color: #ecf0f1;
         }
 
-        /* 메인 메뉴 화면 */
         #main-menu {
             text-align: center;
             padding: 40px;
@@ -55,7 +53,6 @@
             transform: translateY(-2px);
         }
 
-        /* 게임 컨테이너 */
         #game-container {
             display: none;
             flex-direction: column;
@@ -74,7 +71,6 @@
             text-align: center;
         }
 
-        /* 게임 보드 스타일 */
         #game-board {
             display: grid;
             grid-template-columns: 30px repeat(10, 50px);
@@ -107,12 +103,10 @@
             background-color: #f0f0f0;
         }
 
-        /* 코어, 기물 스타일 */
         .core-p1, .core-p2 {
             position: relative;
         }
         
-        /* === 수정된 부분: 코어 시각화 === */
         .core-p1::after, .core-p2::after {
             content: '💎';
             position: absolute;
@@ -125,12 +119,11 @@
         .core-p1 { background-color: rgba(70, 130, 180, 0.7); }
         .core-p2 { background-color: rgba(220, 20, 60, 0.7); }
         
-        /* 기물 아이콘 */
         .piece {
             width: 36px;
             height: 36px;
             display: block;
-            pointer-events: none; /* 클릭은 셀에서 처리 */
+            pointer-events: none;
             transform-origin: center;
             transition: transform 0.12s;
         }
@@ -180,40 +173,79 @@
     </div>
 
     <script>
-        // --- DOM 요소 ---
         const mainMenu = document.getElementById('main-menu');
         const gameContainer = document.getElementById('game-container');
         const startButton = document.getElementById('start-button');
         const boardElement = document.getElementById('game-board');
         const statusPanel = document.getElementById('status-panel');
 
-        // --- 게임 상태 변수 ---
         const BOARD_SIZE = 10;
-        const P1_CORE_LOCATIONS = ['b2', 'c2', 'b3', 'c3'];
-        const P2_CORE_LOCATIONS = ['h8', 'i8', 'h9', 'i9'];
+        const P1_CORE_LOCATIONS = ['e1', 'f1', 'e2', 'f2'];
+        const P2_CORE_LOCATIONS = ['e10', 'f10', 'e9', 'f9'];
         
         let coreHealth = { p1: 3, p2: 3 };
         let currentPlayer = 'p1';
-        let gamePieces = {}; // 보드 위 기물 정보 저장
-        let selectedPiece = null; // 선택된 기물의 id
+        let gamePieces = {};
+        let selectedPiece = null;
         let isGameOver = false;
 
-        // 기물 초기 배치 설정
         const initialSetup = {
-            'a1': { type: 'Striker', player: 'p1', pushed: false }, 'b1': { type: 'Cannon', player: 'p1' }, 'c1': { type: 'Striker', player: 'p1', pushed: false }, 'd1': { type: 'Breaker', player: 'p1' },
-            'a2': { type: 'Striker', player: 'p1', pushed: false },                                                 'd2': { type: 'Striker', player: 'p1', pushed: false },
-            'a3': { type: 'Tracer', player: 'p1' },                                                  'd3': { type: 'Tracer', player: 'p1' },
-            'a4': { type: 'Striker', player: 'p1', pushed: false }, 'b4': { type: 'Striker', player: 'p1', pushed: false }, 'c4': { type: 'Striker', player: 'p1', pushed: false }, 'd4': { type: 'Striker', player: 'p1', pushed: false },
-            
-            'g7': { type: 'Striker', player: 'p2', pushed: false }, 'h7': { type: 'Striker', player: 'p2', pushed: false }, 'i7': { type: 'Striker', player: 'p2', pushed: false }, 'j7': { type: 'Striker', player: 'p2', pushed: false },
-            'g8': { type: 'Tracer', player: 'p2' },                                                  'j8': { type: 'Tracer', player: 'p2' },
-            'g9': { type: 'Striker', player: 'p2', pushed: false },                                                 'j9': { type: 'Striker', player: 'p2', pushed: false },
-            'g10': { type: 'Breaker', player: 'p2' }, 'h10': { type: 'Striker', player: 'p2', pushed: false }, 'i10': { type: 'Cannon', player: 'p2' }, 'j10': { type: 'Striker', player: 'p2', pushed: false },
+            'a1': { type: 'Striker', player: 'p1', pushed: false },
+            'b1': { type: 'Striker', player: 'p1', pushed: false },
+            'c1': { type: 'Cannon', player: 'p1' },
+            'd1': { type: 'Breaker', player: 'p1' },
+            'g1': { type: 'Breaker', player: 'p1' },
+            'h1': { type: 'Cannon', player: 'p1' },
+            'i1': { type: 'Striker', player: 'p1', pushed: false },
+            'j1': { type: 'Striker', player: 'p1', pushed: false },
+
+            'a2': { type: 'Tracer', player: 'p1' },
+            'b2': { type: 'Striker', player: 'p1', pushed: false },
+            'c2': { type: 'Striker', player: 'p1', pushed: false },
+            'd2': { type: 'Tracer', player: 'p1' },
+            'g2': { type: 'Tracer', player: 'p1' },
+            'h2': { type: 'Striker', player: 'p1', pushed: false },
+            'i2': { type: 'Striker', player: 'p1', pushed: false },
+            'j2': { type: 'Tracer', player: 'p1' },
+
+            'a3': { type: 'Striker', player: 'p1', pushed: false },
+            'b3': { type: 'Striker', player: 'p1', pushed: false },
+            'c3': { type: 'Breaker', player: 'p1' },
+            'd3': { type: 'Striker', player: 'p1', pushed: false },
+            'g3': { type: 'Striker', player: 'p1', pushed: false },
+            'h3': { type: 'Breaker', player: 'p1' },
+            'i3': { type: 'Striker', player: 'p1', pushed: false },
+            'j3': { type: 'Striker', player: 'p1', pushed: false },
+
+            'a10': { type: 'Striker', player: 'p2', pushed: false },
+            'b10': { type: 'Striker', player: 'p2', pushed: false },
+            'c10': { type: 'Cannon', player: 'p2' },
+            'd10': { type: 'Breaker', player: 'p2' },
+            'g10': { type: 'Breaker', player: 'p2' },
+            'h10': { type: 'Cannon', player: 'p2' },
+            'i10': { type: 'Striker', player: 'p2', pushed: false },
+            'j10': { type: 'Striker', player: 'p2', pushed: false },
+
+            'a9': { type: 'Tracer', player: 'p2' },
+            'b9': { type: 'Striker', player: 'p2', pushed: false },
+            'c9': { type: 'Striker', player: 'p2', pushed: false },
+            'd9': { type: 'Tracer', player: 'p2' },
+            'g9': { type: 'Tracer', player: 'p2' },
+            'h9': { type: 'Striker', player: 'p2', pushed: false },
+            'i9': { type: 'Striker', player: 'p2', pushed: false },
+            'j9': { type: 'Tracer', player: 'p2' },
+
+            'a8': { type: 'Striker', player: 'p2', pushed: false },
+            'b8': { type: 'Striker', player: 'p2', pushed: false },
+            'c8': { type: 'Breaker', player: 'p2' },
+            'd8': { type: 'Striker', player: 'p2', pushed: false },
+            'g8': { type: 'Striker', player: 'p2', pushed: false },
+            'h8': { type: 'Breaker', player: 'p2' },
+            'i8': { type: 'Striker', player: 'p2', pushed: false },
+            'j8': { type: 'Striker', player: 'p2', pushed: false }
         };
 
-        // --- SVG 아이콘 생성 (데이터 URI) ---
         function makePieceDataURI(player, type) {
-            // 색상과 문자 매핑
             const defs = {
                 p1: { color: '#2c9fd6', stroke: '#1b6f94' },
                 p2: { color: '#d64550', stroke: '#8b2a2f' }
@@ -226,7 +258,6 @@
             };
             const { color, stroke } = defs[player];
             const letter = letters[type] || '?';
-            // SVG: 둥근 배경 + 문자
             const svg =
 `<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'>
   <defs>
@@ -242,17 +273,11 @@
             return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
         }
 
-        // --- 기존 이모지 매핑 대체 필요 없음: drawPieces에서 이미지를 삽입함 ---
-        
-        // --- 함수 정의 ---
-        
         function createBoard() {
             boardElement.innerHTML = '';
-            // 기물 텍스트가 중앙에 오도록 z-index 추가
             boardElement.style.position = 'relative';
             boardElement.style.zIndex = '1';
-
-            const cols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
+            const cols = ['a','b','c','d','e','f','g','h','i','j'];
 
             for (let row = 0; row <= BOARD_SIZE; row++) {
                 for (let col = 0; col <= BOARD_SIZE; col++) {
@@ -284,7 +309,6 @@
         function placeInitialPieces() {
             P1_CORE_LOCATIONS.forEach(id => document.getElementById(id)?.classList.add('core-p1'));
             P2_CORE_LOCATIONS.forEach(id => document.getElementById(id)?.classList.add('core-p2'));
-
             gamePieces = JSON.parse(JSON.stringify(initialSetup));
             drawPieces();
         }
@@ -293,7 +317,6 @@
             document.querySelectorAll('.cell').forEach(cell => {
                 cell.textContent = '';
                 cell.classList.remove('pushed');
-                // Remove any inner HTML to avoid duplication
                 cell.innerHTML = '';
             });
             
@@ -301,15 +324,12 @@
                 const piece = gamePieces[id];
                 const cell = document.getElementById(id);
                 if (cell) {
-                    // 이미지 삽입
                     const src = makePieceDataURI(piece.player, piece.type);
                     const img = document.createElement('img');
                     img.src = src;
                     img.alt = piece.type;
                     img.className = 'piece';
                     cell.appendChild(img);
-
-                    // pushed 상태 표시 (셀에 클래스)
                     if (piece.type === 'Striker' && piece.pushed) {
                         cell.classList.add('pushed');
                     }
@@ -361,23 +381,18 @@
         function getValidMoves(pieceId) {
             const piece = gamePieces[pieceId];
             if (!piece) return [];
-
             const { col, row } = parseId(pieceId);
             const moves = [];
-            const dir = piece.player === 'p1' ? 1 : -1; // p1은 아래로, p2는 위로 이동
+            const dir = piece.player === 'p1' ? 1 : -1;
             
             switch (piece.type) {
                 case 'Striker':
-                    // === 수정된 부분 1: 스트라이커 로직 ===
-                    // 이동: 상대 코어 방향으로 대각선 1칸 (빈 칸으로만)
                     [[-1, dir], [1, dir]].forEach(([dCol, dRow]) => {
                         const nextId = toId(col + dCol, row + dRow);
                         if (nextId && !gamePieces[nextId]) {
                             moves.push(nextId);
                         }
                     });
-
-                    // 공격: 직선 1칸 (좌, 우, 전방)
                     [[0, dir], [-1, 0], [1, 0]].forEach(([dCol, dRow]) => {
                         const targetId = toId(col + dCol, row + dRow);
                         if (targetId && gamePieces[targetId] && gamePieces[targetId].player !== piece.player) {
@@ -387,29 +402,24 @@
                     break;
 
                 case 'Cannon':
-                    // === 수정된 부분 2: 캐논 로직 ===
-                    // 공격만 가능 (이동 없음), 직선 3칸까지
                     [[0,1], [0,-1], [1,0], [-1,0]].forEach(([dCol, dRow]) => {
-                        for (let i = 1; i <= 3; i++) { // 사거리 3칸으로 수정
+                        for (let i = 1; i <= 3; i++) {
                             const targetId = toId(col + dCol * i, row + dRow * i);
                             if (!targetId) break;
                             if (gamePieces[targetId]) {
                                 if (gamePieces[targetId].player !== piece.player) {
                                     moves.push(targetId);
                                 }
-                                break; // 다른 기물에 막히면 더 이상 진행 불가
+                                break;
                             }
                         }
                     });
                     break;
 
                 case 'Tracer':
-                    // === 수정된 부분 3: 트레이서 로직 ===
-                    // 대각선 1칸 또는 2칸 이동
                     [[1,1], [1,-1], [-1,1], [-1,-1], [2,2], [2,-2], [-2,2], [-2,-2]].forEach(([dCol, dRow]) => {
                         const nextId = toId(col + dCol, row + dRow);
                         if (nextId && (!gamePieces[nextId] || gamePieces[nextId].player !== piece.player)) {
-                           // 2칸 점프 시, 경로 상에 기물이 있어도 통과 (기존 로직 유지)
                            moves.push(nextId);
                         }
                     });
@@ -434,14 +444,12 @@
             const piece = gamePieces[fromId];
             const target = gamePieces[toId];
 
-            // === 수정된 부분 2: 캐논 공격 처리 ===
             if (piece.type === 'Cannon') {
-                delete gamePieces[toId]; // 상대 기물만 제거
-                return; // 캐논은 이동하지 않으므로 여기서 함수 종료
+                delete gamePieces[toId];
+                return;
             }
 
-            // 액션 처리
-            if (target) { // 공격
+            if (target) {
                 if (piece.type === 'Striker' && target.type === 'Striker') {
                     if (target.pushed) {
                         delete gamePieces[toId];
@@ -482,7 +490,6 @@
                 }
             }
             
-            // 이동
             gamePieces[toId] = piece;
             delete gamePieces[fromId];
         }
@@ -523,13 +530,11 @@
         function startGame() {
             mainMenu.style.display = 'none';
             gameContainer.style.display = 'flex';
-            
             createBoard();
             placeInitialPieces();
             updateStatus();
         }
 
-        // --- 이벤트 리스너 ---
         startButton.addEventListener('click', startGame);
 
     </script>
